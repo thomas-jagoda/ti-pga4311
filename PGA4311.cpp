@@ -34,9 +34,9 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "PGA2310.h"
+#include "PGA4311.h"
 
-PGA2310::PGA2310 (uint8_t pinCS,
+PGA4311::PGA4311 (uint8_t pinCS,
                   uint8_t pinSDATA,
                   uint8_t pinSCLK,
                   uint8_t pinZCEN,
@@ -48,15 +48,19 @@ PGA2310::PGA2310 (uint8_t pinCS,
   _pinMUTE   (pinMUTE),
   _hard_mute (1),
   _muted     (0),
-  _v_left    (0),
-  _v_right   (0),
-  _pv_left   (0),
-  _pv_right  (0)
+  _v_first    (0),
+  _v_second    (0),
+  _v_third    (0),
+  _v_fourth   (0),
+  _pv_first   (0),
+  _pv_second   (0),
+  _pv_third   (0),
+  _pv_fourth  (0)
 {
     /* Intentionally Empty */
 }
 
-PGA2310::PGA2310 (uint8_t pinCS,
+PGA4311::PGA4311 (uint8_t pinCS,
                   uint8_t pinSDATA,
                   uint8_t pinSCLK,
                   uint8_t pinZCEN)
@@ -66,17 +70,21 @@ PGA2310::PGA2310 (uint8_t pinCS,
   _pinZCEN   (pinZCEN),
   _hard_mute (0),
   _muted     (0),
-  _v_left    (0),
-  _v_right   (0),
-  _pv_left   (0),
-  _pv_right  (0)
+  _v_first    (0),
+  _v_second    (0),
+  _v_third    (0),
+  _v_fourth   (0),
+  _pv_first   (0),
+  _pv_second   (0),
+  _pv_third   (0),
+  _pv_fourth  (0)
 {
     /* Intentionally Empty */
 }
 
 /* By Default, Enable Zero Crossing Detection */
 void
-PGA2310::begin (uint8_t zcen_enable)
+PGA4311::begin (uint8_t zcen_enable)
 {
     pinMode(_pinCS,    OUTPUT);
     pinMode(_pinSDATA, OUTPUT);
@@ -104,7 +112,7 @@ PGA2310::begin (uint8_t zcen_enable)
 }
 
 uint8_t
-PGA2310::getLeftVolume (void)
+PGA4311::getFirstVolume (void)
 {
     if (_muted)
     {
@@ -112,12 +120,12 @@ PGA2310::getLeftVolume (void)
     }
     else
     {
-        return _v_left;
+        return _v_first;
     }
 }
 
 uint8_t
-PGA2310::getRightVolume (void)
+PGA4311::getSecondVolume (void)
 {
     if (_muted)
     {
@@ -125,24 +133,50 @@ PGA2310::getRightVolume (void)
     }
     else
     {
-        return _v_right;
+        return _v_second;
     }
 }
 
 uint8_t
-PGA2310::getVolume (void)
+PGA4311::getThirdVolume (void)
 {
-    return getLeftVolume();
+    if (_muted)
+    {
+        return 0;
+    }
+    else
+    {
+        return _v_third;
+    }
+}
+
+uint8_t
+PGA4311::getFourthVolume (void)
+{
+    if (_muted)
+    {
+        return 0;
+    }
+    else
+    {
+        return _v_fourth;
+    }
+}
+
+uint8_t
+PGA4311::getVolume (void)
+{
+    return getFirstVolume();
 }
 
 boolean
-PGA2310::isMuted (void)
+PGA4311::isMuted (void)
 {
     return (boolean)_muted;
 }
 
 void
-PGA2310::SPIWrite (uint8_t b)
+PGA4311::SPIWrite (uint8_t b)
 {
     for (uint8_t i = 0; i < 8; i++)
     {
@@ -164,22 +198,24 @@ PGA2310::SPIWrite (uint8_t b)
 }
 
 void
-PGA2310::setVolume (uint8_t left, uint8_t right)
+PGA4311::setVolume (uint8_t first, uint8_t second, uint8_t third, uint8_t fourth)
 {
-    if ((left > MAX_GAIN) || (right > MAX_GAIN))
+    if ((first > MAX_GAIN) || (second > MAX_GAIN) || (third > MAX_GAIN) || (fourth > MAX_GAIN))
     {
         return; /* don't allow gains above MAX_GAIN */
     }
 
     digitalWrite(_pinCS, LOW);
-    SPIWrite(right);
-    SPIWrite(left);
+    SPIWrite(fourth);
+    SPIWrite(third);
+    SPIWrite(second);
+    SPIWrite(first);
     digitalWrite(_pinCS, HIGH);
 
-    _pv_left = _v_left; _pv_right = _v_right;
-    _v_left = left; _v_right = right;
+    _pv_first = _v_first; _pv_second = _v_second; _pv_third = _v_third; _pv_fourth = _v_fourth;
+    _v_first = first; _v_second = second; _v_third = third; _v_fourth = fourth;
 
-    if (!(_hard_mute) && (_v_left == 0) && (_v_right == 0))
+    if (!(_hard_mute) && (_v_first == 0) && (_v_second == 0) && (_v_third == 0) && (_v_fourth == 0))
     {
         _muted = 1;
     }
@@ -190,29 +226,31 @@ PGA2310::setVolume (uint8_t left, uint8_t right)
 }
 
 void
-PGA2310::setVolume (uint8_t vol)
+PGA4311::setVolume (uint8_t vol)
 {
-    setVolume(vol, vol);
+    setVolume(vol, vol, vol, vol);
 }
 
 void
-PGA2310::restoreVolume (void)
+PGA4311::restoreVolume (void)
 {
-    uint8_t tr, tl;
+    uint8_t t4, t3, t2, t1;
 
     digitalWrite(_pinCS, LOW);
-    SPIWrite(_pv_right);
-    SPIWrite(_pv_left);
+    SPIWrite(_pv_fourth);
+    SPIWrite(_pv_third);
+    SPIWrite(_pv_second);
+    SPIWrite(_pv_first);
     digitalWrite(_pinCS, HIGH);
 
-    tr = _v_right; tl = _v_left;
+    t4 = _v_fourth; t3 = _v_third; t2 = _v_second; t1 = _v_first;
 
-    _v_right = _pv_right; _v_left = _pv_left;
-    _pv_right = tr; _pv_left = tl;
+    _v_fourth = _pv_fourth; _v_third = _pv_third; _v_second = _pv_second; _v_first = _pv_first;
+    _pv_fourth = t4; _pv_third = t3; _pv_second = t2; _pv_first = t1;
 }
 
 void
-PGA2310::mute (void)
+PGA4311::mute (void)
 {
     if (_hard_mute)
     {
@@ -220,13 +258,13 @@ PGA2310::mute (void)
     }
     else
     {
-        setVolume(0, 0);
+        setVolume(0, 0, 0, 0);
     }
     _muted = 1;
 }
 
 void
-PGA2310::toggleMute (void)
+PGA4311::toggleMute (void)
 {
     if (_muted)
     {   
@@ -250,7 +288,7 @@ PGA2310::toggleMute (void)
         }
         else
         {
-            setVolume(0, 0);
+            setVolume(0, 0, 0, 0);
         }
         _muted = 1;
     }
@@ -258,21 +296,21 @@ PGA2310::toggleMute (void)
 
 
 void
-PGA2310::incVolume (void)
+PGA4311::incVolume (void)
 {
     incVolume(1);
 }
 
 void
-PGA2310::decVolume (void)
+PGA4311::decVolume (void)
 {
     decVolume(1);
 }
 
 void
-PGA2310::incVolume (uint8_t step)
+PGA4311::incVolume (uint8_t step)
 {
-    int16_t nl, nr;
+    int16_t n1, n2, n3, n4;
 
     if (_muted)
     {
@@ -283,22 +321,24 @@ PGA2310::incVolume (uint8_t step)
         _muted = 0;
     }
 
-    nl = _v_left + step; nr = _v_right + step;
+    n1 = _v_first + step; n2 = _v_second + step; n3 = _v_third + step; n4 = _v_fourth + step;
 
-    nl = nl > MAX_GAIN ? MAX_GAIN : nl;
-    nr = nr > MAX_GAIN ? MAX_GAIN : nr;
+    n1 = n1 > MAX_GAIN ? MAX_GAIN : n1;
+    n2 = n2 > MAX_GAIN ? MAX_GAIN : n2;
+    n3 = n3 > MAX_GAIN ? MAX_GAIN : n3;
+    n4 = n4 > MAX_GAIN ? MAX_GAIN : n4;
 
-    if ((nl != _v_left) || (nr != _v_right))
+    if ((n1 != _v_first) || (n2 != _v_second) || (n3 != _v_third) || (n4 != _v_fourth))
     {
         /* minimize writes to device */
-        setVolume((uint8_t)nl, (uint8_t)nr);
+        setVolume((uint8_t)n1, (uint8_t)n2, (uint8_t)n3, (uint8_t)n4);
     }   
 }
 
 void
-PGA2310::decVolume (uint8_t step)
+PGA4311::decVolume (uint8_t step)
 {
-    int16_t nl, nr;
+    int16_t n1, n2, n3, n4;
 
     if (_muted)
     {
@@ -309,14 +349,16 @@ PGA2310::decVolume (uint8_t step)
         _muted = 0;
     }
 
-    nl = _v_left - step; nr = _v_right - step;
+    n1 = _v_first - step; n2 = _v_second - step; n3 = _v_third - step; n4 = _v_fourth - step;
 
-    nl = nl < 0 ? 0 : nl;
-    nr = nr < 0 ? 0 : nr;
+    n1 = n1 < 0 ? 0 : n1;
+    n2 = n2 < 0 ? 0 : n2;
+    n3 = n3 < 0 ? 0 : n3;
+    n4 = n4 < 0 ? 0 : n4;
 
-    if ((nl != _v_left) || (nr != _v_right))
+    if ((n1 != _v_first) || (n2 != _v_second) || (n3 != _v_third) || (n4 != _v_fourth))
     {
         /* minimize writes to device */
-        setVolume((uint8_t)nl, (uint8_t)nr);
+        setVolume((uint8_t)n1, (uint8_t)n2, (uint8_t)n3, (uint8_t)n4);
     }   
 }

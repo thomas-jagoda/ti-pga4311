@@ -1,4 +1,10 @@
 /*
+ * This is a modified version of the PGA2310 library 
+ * for use with the PGA4311 quad volume controller
+ */
+
+/*
+ * Original library:
  *  ti-pga2310
  *  v 1.0.0
  *  github.com/kashev/ti-pga2310
@@ -12,8 +18,8 @@
  */
 
 
-#ifndef TI_PGA2310_H
-#define TI_PGA2310_H
+#ifndef TI_PGA4311_H
+#define TI_PGA4311_H
 
 #include "Arduino.h"
 /* #include "Energia.h" */
@@ -29,23 +35,25 @@
    #define MAX_GAIN    UNITY_GAIN //  0.0 dB
 /* #define MAX_GAIN           255 // 31.5 dB */
 
-class PGA2310 {
+class PGA4311 {
 public:
     /* Constructors */
-    PGA2310 (uint8_t pinCS, uint8_t pinSDATA, uint8_t pinSCLK, uint8_t pinZCEN, uint8_t pinMUTE);
-    PGA2310 (uint8_t pinCS, uint8_t pinSDATA, uint8_t pinSCLK, uint8_t pinZCEN);
+    PGA4311 (uint8_t pinCS, uint8_t pinSDATA, uint8_t pinSCLK, uint8_t pinZCEN, uint8_t pinMUTE);
+    PGA4311 (uint8_t pinCS, uint8_t pinSDATA, uint8_t pinSCLK, uint8_t pinZCEN);
 
     /* Initializers */
     void begin (uint8_t zcen_enable = 1);
 
     /* Getters */
-    uint8_t getLeftVolume (void);
-    uint8_t getRightVolume (void);
+    uint8_t getFirstVolume (void);
+    uint8_t getSecondVolume (void);    
+    uint8_t getThirdVolume (void);
+    uint8_t getFourthVolume (void);
     uint8_t getVolume (void);
     boolean isMuted (void);
 
     /* Setters */
-    void setVolume (uint8_t left, uint8_t right);
+    void setVolume (uint8_t first, uint8_t second, uint8_t third, uint8_t fourth);
     void setVolume (uint8_t vol);
     void restoreVolume (void);
 
@@ -71,9 +79,9 @@ private:
     uint8_t _hard_mute, _muted;
 
     /* Volume */
-    uint8_t _v_left,  _v_right;
-    uint8_t _pv_left, _pv_right;
+    uint8_t _v_first,  _v_second,  _v_third,  _v_fourth;
+    uint8_t _pv_first, _pv_second, _pv_third, _pv_fourth;
 };
 
 
-#endif /* TI_PGA2310_H */
+#endif /* TI_PGA4311_H */
